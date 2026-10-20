@@ -21,11 +21,64 @@
 <h2 style="border:0;padding:0;margin:16px 0 8px">這個功能還在準備中</h2>
 <p>未來你可以在這裡直接提問，例如「哪個年齡組的焦慮平均最高？」，並看到對應的圖表與算法。</p>
 <p>在那之前，請到<a href="results.html">研究結果</a>頁自行探索，或在<a href="about.html">關於研究</a>頁查看方法說明。</p></div>
+<div style="margin:22px 0">
+<button class="lnk2" id="ping" type="button">測試連線</button>
+<p class="hint" id="pingOut" role="status" aria-live="polite"></p>
+</div>
 <div class="help" role="note"><b>提醒：</b>本網站與問答功能都不提供診斷。若你正感到痛苦，請撥 1925（24 小時安心專線）、1995（生命線）或 1980（張老師）。</div>
 </main>
 <footer>
 <p><b>組別：</b>【請填入組別】　<b>組員：</b>【請填入組員姓名】</p>
 <p>資料來源：Open Psychometrics 線上 DASS-42 問卷（2017–2019）。本網站為研究專題的描述性資料呈現，不是診斷或篩檢工具。如需協助，可撥 1925（24 小時安心專線）。</p>
 </footer>
+<script>
+(function(){
+  // 後端網址：請把下面這行換成你的 Worker 網址，例如 "https://名稱.你的帳號.workers.dev"
+  var BACKEND_URL = "【請填入你的 Worker 網址】";
+
+  var btn = document.getElementById('ping');
+  var out = document.getElementById('pingOut');
+
+  btn.addEventListener('click', function(){
+    if (!/^https?:\/\//.test(BACKEND_URL)) {
+      out.textContent = '尚未設定後端網址：請打開 ask.html，把 BACKEND_URL 換成你的 Worker 網址。';
+      return;
+    }
+    btn.disabled = true;
+    out.textContent = '連線中…';
+    var ctrl = new AbortController();
+    var timer = setTimeout(function(){ ctrl.abort(); }, 10000);
+
+    fetch(BACKEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'test' }),
+      signal: ctrl.signal
+    })
+    .then(function(r){
+      return r.text().then(function(t){ return { status: r.status, ok: r.ok, text: t }; });
+    })
+    .then(function(r){
+      var msg = r.text;
+      try {
+        var j = JSON.parse(r.text);
+        msg = (!r.ok && j && j.error) ? j.error : JSON.stringify(j);
+      } catch (e) {}
+      out.textContent = r.ok
+        ? '連線成功（' + r.status + '）：' + msg
+        : '連線失敗（' + r.status + '）：' + (msg || '後端沒有回傳訊息');
+    })
+    .catch(function(e){
+      out.textContent = (e && e.name === 'AbortError')
+        ? '連線逾時（10 秒沒有回應），請確認網址是否正確。'
+        : '無法連線：可能是網址錯誤、網路中斷，或後端的 ALLOWED_ORIGIN 沒有允許這個網站。';
+    })
+    .finally(function(){
+      clearTimeout(timer);
+      btn.disabled = false;
+    });
+  });
+})();
+</script>
 </body>
 </html>
